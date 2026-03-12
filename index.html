@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedVocab — 医学部受験英単語</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#ffd166">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MedVocab">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0c10;
+  --s1: #13131a;
+  --s2: #1a1a24;
+  --s3: #22222e;
+  --border: rgba(255,255,255,0.07);
+  --text: #ede8ff;
+  --text2: #7a7a9a;
+  --text3: #4a4a6a;
+
+/* Level colors */
+–l1: #ffd166; /* 超頻出 */
+–l2: #06d6a0; /* 頻出 */
+–l3: #4cc9f0; /* 標準 */
+–l4: #7c6fcd; /* やや難 */
+–l5: #f72585; /* 難 */
+}
+
+- { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+font-family: ‘Noto Sans JP’, sans-serif;
+background: var(–bg);
+color: var(–text);
+min-height: 100vh;
+}
+
+/* Noise texture overlay */
+body::after {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.03’/%3E%3C/svg%3E”);
+pointer-events: none;
+z-index: 999;
+opacity: 0.4;
+}
+
+.wrap {
+max-width: 660px;
+margin: 0 auto;
+padding: 0 16px 80px;
+}
+
+/* ── Header ── */
+.header {
+padding: 36px 0 24px;
+display: flex;
+align-items: flex-end;
+justify-content: space-between;
+}
+
+.logo-block {}
+.logo {
+font-family: ‘Playfair Display’, serif;
+font-size: 2rem;
+font-weight: 700;
+letter-spacing: -0.03em;
+color: var(–text);
+}
+.logo em {
+font-style: italic;
+font-weight: 400;
+color: var(–l1);
+}
+.sub {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.65rem;
+color: var(–text3);
+letter-spacing: 0.15em;
+text-transform: uppercase;
+margin-top: 3px;
+}
+
+.score-pill {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.75rem;
+color: var(–text2);
+background: var(–s2);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 6px 14px;
+display: flex;
+gap: 10px;
+}
+.score-pill span { color: var(–l1); }
+
+/* ── Level tabs ── */
+.level-tabs {
+display: flex;
+gap: 6px;
+margin-bottom: 20px;
+overflow-x: auto;
+padding-bottom: 4px;
+scrollbar-width: none;
+}
+.level-tabs::-webkit-scrollbar { display: none; }
+
+.ltab {
+flex-shrink: 0;
+background: var(–s1);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 10px 14px;
+cursor: pointer;
+transition: all 0.2s;
+text-align: center;
+min-width: 90px;
+}
+.ltab:hover { border-color: rgba(255,255,255,0.15); }
+.ltab.active { background: var(–s2); }
+.ltab-dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+margin: 0 auto 6px;
+}
+.ltab-name {
+font-size: 0.7rem;
+font-weight: 700;
+color: var(–text);
+}
+.ltab-num {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.62rem;
+color: var(–text2);
+margin-top: 2px;
+}
+.ltab-bar {
+height: 2px;
+border-radius: 1px;
+margin-top: 6px;
+background: var(–border);
+overflow: hidden;
+}
+.ltab-bar-fill {
+height: 100%;
+border-radius: 1px;
+transition: width 0.4s;
+}
+
+/* ── Mode row ── */
+.mode-row {
+display: flex;
+gap: 6px;
+margin-bottom: 20px;
+}
+.mbtn {
+flex: 1;
+background: var(–s1);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 9px 6px;
+cursor: pointer;
+font-size: 0.75rem;
+font-family: ‘Noto Sans JP’, sans-serif;
+color: var(–text2);
+transition: all 0.2s;
+text-align: center;
+}
+.mbtn.active {
+color: var(–text);
+border-color: rgba(255,255,255,0.18);
+background: var(–s2);
+}
+.mbtn-icon { font-size: 1rem; display: block; margin-bottom: 2px; }
+
+/* ── Progress bar ── */
+.prog-wrap {
+height: 2px;
+background: var(–s3);
+border-radius: 1px;
+margin-bottom: 18px;
+overflow: hidden;
+}
+.prog-fill {
+height: 100%;
+border-radius: 1px;
+transition: width 0.4s;
+}
+
+/* ── Flashcard ── */
+.card-shell {
+background: var(–s1);
+border: 1px solid var(–border);
+border-radius: 18px;
+padding: 44px 28px 36px;
+min-height: 230px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+cursor: pointer;
+transition: border-color 0.25s, box-shadow 0.25s;
+position: relative;
+margin-bottom: 12px;
+overflow: hidden;
+}
+.card-shell::before {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: radial-gradient(ellipse at 50% 0%, rgba(255,209,102,0.04) 0%, transparent 65%);
+pointer-events: none;
+}
+.card-shell:hover { border-color: rgba(255,255,255,0.12); }
+.card-shell.revealed {
+border-color: rgba(6,214,160,0.3);
+box-shadow: 0 0 28px rgba(6,214,160,0.07);
+}
+
+.card-level-badge {
+position: absolute;
+top: 16px;
+right: 16px;
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.6rem;
+letter-spacing: 0.1em;
+padding: 3px 8px;
+border-radius: 4px;
+background: var(–s3);
+border: 1px solid var(–border);
+}
+
+.card-num {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.65rem;
+color: var(–text3);
+margin-bottom: 14px;
+letter-spacing: 0.1em;
+}
+
+.card-en {
+font-family: ‘Playfair Display’, serif;
+font-size: 2.8rem;
+font-weight: 700;
+letter-spacing: -0.03em;
+line-height: 1;
+margin-bottom: 8px;
+color: var(–text);
+}
+
+.card-ipa {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.8rem;
+color: var(–text2);
+margin-bottom: 18px;
+}
+
+.tap-hint {
+font-size: 0.72rem;
+color: var(–text3);
+letter-spacing: 0.05em;
+}
+
+.reveal-area {
+display: none;
+animation: up 0.25s ease;
+}
+.reveal-area.show { display: block; }
+
+@keyframes up {
+from { opacity:0; transform: translateY(10px); }
+to   { opacity:1; transform: translateY(0); }
+}
+
+.card-divider {
+width: 32px; height: 1px;
+background: var(–border);
+margin: 14px auto;
+}
+
+.card-jp {
+font-size: 1.7rem;
+font-weight: 700;
+margin-bottom: 8px;
+}
+
+.card-desc {
+font-size: 0.8rem;
+color: var(–text2);
+line-height: 1.65;
+max-width: 380px;
+}
+
+.card-example {
+margin-top: 10px;
+font-size: 0.72rem;
+color: var(–text3);
+font-style: italic;
+line-height: 1.5;
+}
+
+/* ── Answer buttons ── */
+.ans-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+margin-bottom: 12px;
+}
+.ans-btn {
+padding: 13px;
+border-radius: 10px;
+border: 1px solid var(–border);
+cursor: pointer;
+font-size: 0.82rem;
+font-family: ‘Noto Sans JP’, sans-serif;
+font-weight: 500;
+transition: all 0.18s;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 5px;
+}
+.ans-ng { background: rgba(247,37,133,0.07); color: #f87171; border-color: rgba(247,37,133,0.18); }
+.ans-ng:hover { background: rgba(247,37,133,0.14); }
+.ans-ok { background: rgba(6,214,160,0.07); color: #34d399; border-color: rgba(6,214,160,0.2); }
+.ans-ok:hover { background: rgba(6,214,160,0.14); }
+
+/* ── Nav ── */
+.nav-row {
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 10px;
+margin-bottom: 24px;
+}
+.nav-btn {
+background: var(–s2);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 9px 18px;
+cursor: pointer;
+color: var(–text2);
+font-size: 0.82rem;
+font-family: ‘Noto Sans JP’, sans-serif;
+transition: all 0.18s;
+}
+.nav-btn:hover { color: var(–text); border-color: rgba(255,255,255,0.14); }
+.nav-count {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.78rem;
+color: var(–text2);
+padding: 0 8px;
+}
+
+/* ── Quiz ── */
+.quiz-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+margin-bottom: 12px;
+}
+.qopt {
+background: var(–s1);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 16px 10px;
+cursor: pointer;
+font-size: 0.85rem;
+font-family: ‘Noto Sans JP’, sans-serif;
+color: var(–text);
+text-align: center;
+line-height: 1.4;
+transition: all 0.18s;
+}
+.qopt:hover:not(.dis) { border-color: rgba(255,255,255,0.18); }
+.qopt.ok { border-color: rgba(6,214,160,0.5); background: rgba(6,214,160,0.08); color: #34d399; }
+.qopt.ng { border-color: rgba(247,37,133,0.4); background: rgba(247,37,133,0.06); color: #f87171; }
+.qopt.dis { cursor: default; }
+
+/* ── Sticker list ── */
+.sticker-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.sticker-item {
+background: var(–s1);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 13px 16px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.si-left {}
+.si-en { font-family: ‘Playfair Display’, serif; font-size: 1.1rem; }
+.si-jp { font-size: 0.78rem; color: var(–text2); margin-top: 2px; }
+.si-badge {
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 0.6rem;
+padding: 3px 8px;
+border-radius: 5px;
+background: rgba(247,37,133,0.1);
+color: #f87171;
+border: 1px solid rgba(247,37,133,0.2);
+}
+
+.empty-msg {
+text-align: center;
+color: var(–text3);
+padding: 48px 0;
+font-size: 0.88rem;
+}
+
+.hidden { display: none !important; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+
+  <div class="header">
+    <div class="logo-block">
+      <div class="logo">Med<em>Vocab</em></div>
+      <div class="sub">医学部受験 · 頻出英単語 150</div>
+    </div>
+    <div class="score-pill">
+      正解 <span id="h-correct">0</span> / <span id="h-total">0</span>
+    </div>
+  </div>
+
+  <!-- Level tabs -->
+
+  <div class="level-tabs" id="level-tabs"></div>
+
+  <!-- Mode row -->
+
+  <div class="mode-row">
+    <button class="mbtn active" id="mb-flash" onclick="setMode('flash')"><span class="mbtn-icon">🃏</span>フラッシュ</button>
+    <button class="mbtn" id="mb-quiz" onclick="setMode('quiz')"><span class="mbtn-icon">🧠</span>クイズ</button>
+    <button class="mbtn" id="mb-sticker" onclick="setMode('sticker')"><span class="mbtn-icon">⚠️</span>苦手</button>
+  </div>
+
+  <!-- Progress -->
+
+  <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+
+  <!-- Flash mode -->
+
+  <div id="mode-flash">
+    <div class="card-shell" id="fcard" onclick="reveal()">
+      <div class="card-level-badge" id="f-badge">LEVEL 1</div>
+      <div class="card-num" id="f-num">01 / 30</div>
+      <div class="card-en" id="f-en">—</div>
+      <div class="card-ipa" id="f-ipa"></div>
+      <div class="tap-hint" id="f-hint">タップして意味を確認 →</div>
+      <div class="reveal-area" id="f-reveal">
+        <div class="card-divider"></div>
+        <div class="card-jp" id="f-jp"></div>
+        <div class="card-desc" id="f-desc"></div>
+        <div class="card-example" id="f-ex"></div>
+      </div>
+    </div>
+    <div class="ans-row" id="ans-row" style="display:none">
+      <button class="ans-btn ans-ng" onclick="mark(false)">✗ 苦手に追加</button>
+      <button class="ans-btn ans-ok" onclick="mark(true)">✓ 覚えた！</button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="go(-1)">← 前</button>
+      <span class="nav-count" id="f-counter">1 / 30</span>
+      <button class="nav-btn" onclick="go(1)">次 →</button>
+    </div>
+  </div>
+
+  <!-- Quiz mode -->
+
+  <div id="mode-quiz" class="hidden">
+    <div class="card-shell" style="cursor:default">
+      <div class="card-level-badge" id="q-badge">LEVEL 1</div>
+      <div class="card-num" id="q-num">01 / 30</div>
+      <div class="card-en" id="q-en">—</div>
+      <div class="card-ipa" id="q-ipa"></div>
+    </div>
+    <div class="quiz-grid" id="quiz-grid"></div>
+    <div class="nav-row"><span class="nav-count" id="q-counter">1 / 30</span></div>
+  </div>
+
+  <!-- Sticker mode -->
+
+  <div id="mode-sticker" class="hidden">
+    <div class="sticker-list" id="sticker-list"></div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  VOCABULARY DATA  —  150語 / 5レベル
+// ════════════════════════════════════════
+const LEVELS = [
+  {
+    id: 1,
+    name: '超頻出',
+    color: '#ffd166',
+    desc: '最頻出・確実に覚える',
+    words: [
+      { en:'cell',          ipa:'/sɛl/',              jp:'細胞',       desc:'生命の基本単位。すべての生物はひとつ以上の細胞からなる。', ex:'Red blood cells carry oxygen throughout the body.' },
+      { en:'protein',       ipa:'/ˈproʊtiːn/',        jp:'タンパク質', desc:'アミノ酸が連なった高分子。酵素・抗体・構造材料として機能。', ex:'Enzymes are proteins that catalyze biochemical reactions.' },
+      { en:'enzyme',        ipa:'/ˈɛnzaɪm/',          jp:'酵素',       desc:'化学反応を触媒する生体タンパク質。反応後も変化しない。', ex:'Digestive enzymes break down food into smaller molecules.' },
+      { en:'gene',          ipa:'/dʒiːn/',             jp:'遺伝子',     desc:'DNAの特定配列で、形質を決定する遺伝の単位。', ex:'A single gene may influence multiple physical traits.' },
+      { en:'DNA',           ipa:'/ˌdiːɛnˈeɪ/',        jp:'DNA',        desc:'デオキシリボ核酸。遺伝情報を担う二重らせん状高分子。', ex:'DNA replication occurs before cell division.' },
+      { en:'membrane',      ipa:'/ˈmɛmbreɪn/',        jp:'膜',         desc:'細胞を囲む脂質二重層。選択的透過性をもつ。', ex:'The plasma membrane regulates what enters and exits the cell.' },
+      { en:'nucleus',       ipa:'/ˈnjuːkliəs/',       jp:'核',         desc:'DNA・RNA合成の中心。二重膜に包まれた細胞小器官。', ex:'The nucleus controls cellular activities.' },
+      { en:'metabolism',    ipa:'/məˈtæbəlɪzəm/',     jp:'代謝',       desc:'生体内で起こる化学変化の総体。同化と異化からなる。', ex:'Metabolic disorders can affect energy production.' },
+      { en:'organism',      ipa:'/ˈɔːrɡənɪzəm/',      jp:'生物・有機体',desc:'生命を維持する構造的・機能的単位としての生き物。', ex:'Bacteria are single-celled organisms.' },
+      { en:'tissue',        ipa:'/ˈtɪʃuː/',            jp:'組織',       desc:'類似した細胞の集合体。上皮・結合・筋・神経の4種が基本。', ex:'Muscle tissue contracts to produce movement.' },
+      { en:'oxygen',        ipa:'/ˈɒksɪdʒən/',        jp:'酸素',       desc:'好気性生物のエネルギー産生に不可欠な元素 (O₂)。', ex:'Hemoglobin carries oxygen in the blood.' },
+      { en:'glucose',       ipa:'/ˈɡluːkoʊs/',        jp:'グルコース', desc:'最も重要な単糖。細胞のエネルギー源として中心的役割。', ex:'Insulin regulates blood glucose levels.' },
+      { en:'hormone',       ipa:'/ˈhɔːrmoʊn/',        jp:'ホルモン',   desc:'内分泌腺から分泌される化学的情報伝達物質。', ex:'Insulin is a hormone produced by the pancreas.' },
+      { en:'nerve',         ipa:'/nɜːrv/',             jp:'神経',       desc:'電気信号を伝えるニューロンの束。末梢神経系を構成。', ex:'The optic nerve transmits visual signals to the brain.' },
+      { en:'blood',         ipa:'/blʌd/',              jp:'血液',       desc:'酸素・栄養・免疫細胞などを全身に輸送する液状組織。', ex:'Blood pressure measures the force of blood on arterial walls.' },
+      { en:'immune',        ipa:'/ɪˈmjuːn/',           jp:'免疫の',     desc:'病原体から体を守る防御機構に関連する形容詞。', ex:'The immune system defends against infections.' },
+      { en:'antibody',      ipa:'/ˈæntɪbɒdi/',        jp:'抗体',       desc:'B細胞が産生する免疫グロブリン。抗原を特異的に認識。', ex:'Vaccines stimulate antibody production.' },
+      { en:'mutation',      ipa:'/mjuːˈteɪʃən/',      jp:'突然変異',   desc:'DNA塩基配列の変化。がんや遺伝性疾患の原因となり得る。', ex:'Some mutations are caused by radiation exposure.' },
+      { en:'chromosome',    ipa:'/ˈkroʊməsoʊm/',      jp:'染色体',     desc:'DNAとタンパク質からなる構造体。ヒトは46本保有。', ex:'Down syndrome is caused by an extra chromosome 21.' },
+      { en:'ATP',           ipa:'/ˌeɪtiːˈpiː/',       jp:'ATP',        desc:'アデノシン三リン酸。細胞のエネルギー通貨として機能。', ex:'ATP is produced during cellular respiration.' },
+      { en:'osmosis',       ipa:'/ɒzˈmoʊsɪs/',        jp:'浸透',       desc:'半透膜を通じた水の高濃度から低濃度への移動。', ex:'Osmosis maintains water balance in plant cells.' },
+      { en:'photosynthesis',ipa:'/ˌfoʊtəˈsɪnθəsɪs/', jp:'光合成',     desc:'光エネルギーを使ってCO₂と水から有機物を合成する過程。', ex:'Photosynthesis produces oxygen as a byproduct.' },
+      { en:'respiration',   ipa:'/ˌrɛspəˈreɪʃən/',   jp:'呼吸',       desc:'細胞内でグルコースを分解してATPを産生する過程。', ex:'Aerobic respiration requires oxygen.' },
+      { en:'acid',          ipa:'/ˈæsɪd/',             jp:'酸',         desc:'水溶液中でH⁺を放出する物質。pH7未満を示す。', ex:'Stomach acid (HCl) helps digest food.' },
+      { en:'base',          ipa:'/beɪs/',               jp:'塩基',       desc:'水溶液中でOH⁻を放出またはH⁺を受け取る物質。', ex:'Bases neutralize acids in chemical reactions.' },
+      { en:'nucleus',       ipa:'/ˈnjuːkliəs/',       jp:'核',         desc:'細胞の制御中心。DNAを含む二重膜で覆われた小器官。', ex:'mRNA is transcribed from DNA in the nucleus.' },
+      { en:'receptor',      ipa:'/rɪˈsɛptər/',        jp:'受容体',     desc:'特定の化学物質と結合して細胞内に信号を伝えるタンパク質。', ex:'Hormone receptors are often found on cell membranes.' },
+      { en:'synapse',       ipa:'/ˈsɪnæps/',          jp:'シナプス',   desc:'ニューロン間の接合部。神経伝達物質を介して信号を伝える。', ex:'Neurotransmitters cross the synapse between neurons.' },
+      { en:'diffusion',     ipa:'/dɪˈfjuːʒən/',       jp:'拡散',       desc:'物質が高濃度から低濃度へ自発的に移動する現象。', ex:'Gases exchange by diffusion across the lung membrane.' },
+      { en:'evolution',     ipa:'/ˌiːvəˈluːʃən/',    jp:'進化',       desc:'世代を経て生物集団の遺伝的特性が変化するプロセス。', ex:'Darwin proposed evolution by natural selection.' },
+    ]
+  },
+  {
+    id: 2,
+    name: '頻出',
+    color: '#06d6a0',
+    desc: '入試頻出・得点源',
+    words: [
+      { en:'mitosis',       ipa:'/maɪˈtoʊsɪs/',       jp:'有糸分裂',   desc:'体細胞分裂。遺伝的に同一な2つの娘細胞を生じる。', ex:'Mitosis occurs in somatic cells for growth and repair.' },
+      { en:'meiosis',       ipa:'/maɪˈoʊsɪs/',        jp:'減数分裂',   desc:'染色体数が半減する分裂。配偶子（精子・卵）を形成。', ex:'Meiosis produces haploid gametes.' },
+      { en:'homeostasis',   ipa:'/ˌhoʊmioʊˈsteɪʃən/',jp:'恒常性',     desc:'体内環境を一定に保とうとする生体の調節機構。', ex:'Sweating maintains homeostasis by cooling the body.' },
+      { en:'catalyst',      ipa:'/ˈkætəlɪst/',        jp:'触媒',       desc:'自身は変化せず反応速度を上げる物質。酵素は生体触媒。', ex:'A catalyst lowers the activation energy of a reaction.' },
+      { en:'hydrolysis',    ipa:'/haɪˈdrɒlɪsɪs/',     jp:'加水分解',   desc:'水分子を加えて化合物を分解する反応。消化の基本過程。', ex:'Proteins undergo hydrolysis to release amino acids.' },
+      { en:'oxidation',     ipa:'/ˌɒksɪˈdeɪʃən/',    jp:'酸化',       desc:'電子を失う反応。生体内では呼吸鎖などで重要な役割。', ex:'Oxidation of glucose releases energy for ATP synthesis.' },
+      { en:'pathogen',      ipa:'/ˈpæθədʒən/',        jp:'病原体',     desc:'疾患を引き起こす微生物。細菌・ウイルス・真菌など。', ex:'Pathogens can be transmitted through air or water.' },
+      { en:'antigen',       ipa:'/ˈæntɪdʒən/',        jp:'抗原',       desc:'免疫応答を引き起こす異物。抗体が特異的に結合する目標。', ex:'Each pathogen has unique antigens on its surface.' },
+      { en:'plasma',        ipa:'/ˈplæzmə/',          jp:'血漿',       desc:'血液の液体成分。タンパク質・電解質・ホルモンを含む。', ex:'Plasma transports nutrients and waste products.' },
+      { en:'neuron',        ipa:'/ˈnjʊərɒn/',         jp:'ニューロン', desc:'神経系の基本単位。電気信号を伝える特殊化した細胞。', ex:'Motor neurons transmit signals from the brain to muscles.' },
+      { en:'allele',        ipa:'/əˈliːl/',            jp:'対立遺伝子', desc:'同一遺伝子座に存在する遺伝子の異なる型。', ex:'Eye color is determined by different alleles.' },
+      { en:'phenotype',     ipa:'/ˈfiːnəˌtaɪp/',      jp:'表現型',     desc:'遺伝子型が環境と相互作用して現れる観察可能な特性。', ex:'Height is an example of a phenotype.' },
+      { en:'genotype',      ipa:'/ˈdʒiːnəˌtaɪp/',     jp:'遺伝子型',   desc:'生物がもつ遺伝子の組み合わせ。表現型の遺伝的基盤。', ex:'The genotype AA is homozygous dominant.' },
+      { en:'dominant',      ipa:'/ˈdɒmɪnənt/',        jp:'優性の',     desc:'一方の対立遺伝子の発現を抑える遺伝子の性質。', ex:'Brown eye color is dominant over blue.' },
+      { en:'recessive',     ipa:'/rɪˈsɛsɪv/',         jp:'劣性の',     desc:'同型接合でのみ形質として現れる遺伝子の性質。', ex:'Cystic fibrosis is caused by a recessive allele.' },
+      { en:'buffer',        ipa:'/ˈbʌfər/',            jp:'緩衝液',     desc:'pH変化に抵抗する溶液。体液のpH調節に不可欠。', ex:'Bicarbonate acts as a buffer in blood.' },
+      { en:'electrolyte',   ipa:'/ɪˈlɛktrəlaɪt/',    jp:'電解質',     desc:'溶解してイオンになる物質。Na⁺・K⁺・Cl⁻など。', ex:'Electrolyte imbalance can cause muscle cramps.' },
+      { en:'polymer',       ipa:'/ˈpɒlɪmər/',         jp:'高分子・重合体',desc:'単量体が多数結合した巨大分子。DNAやタンパク質など。', ex:'Cellulose is a polymer of glucose units.' },
+      { en:'diagnosis',     ipa:'/ˌdaɪəɡˈnoʊsɪs/',   jp:'診断',       desc:'症状・検査結果から疾患を特定すること。', ex:'Early diagnosis improves treatment outcomes.' },
+      { en:'inflammation',  ipa:'/ˌɪnfləˈmeɪʃən/',   jp:'炎症',       desc:'組織損傷や感染に対する非特異的防御反応。', ex:'Redness and swelling are signs of inflammation.' },
+      { en:'inhibit',       ipa:'/ɪnˈhɪbɪt/',         jp:'阻害する',   desc:'酵素や反応などの活性・進行を妨げること。', ex:'Some drugs inhibit viral replication.' },
+      { en:'stimulate',     ipa:'/ˈstɪmjʊleɪt/',      jp:'刺激する',   desc:'活動・反応を活発にさせること。', ex:'Caffeine stimulates the central nervous system.' },
+      { en:'synthesize',    ipa:'/ˈsɪnθəsaɪz/',       jp:'合成する',   desc:'より単純な物質から複雑な化合物を作ること。', ex:'Cells synthesize proteins using mRNA templates.' },
+      { en:'regulate',      ipa:'/ˈrɛɡjʊleɪt/',       jp:'調節する',   desc:'過程や機能を制御・管理すること。', ex:'The hypothalamus regulates body temperature.' },
+      { en:'secrete',       ipa:'/sɪˈkriːt/',          jp:'分泌する',   desc:'細胞や腺から物質を産生・放出すること。', ex:'The thyroid gland secretes thyroxine.' },
+      { en:'absorb',        ipa:'/əbˈzɔːrb/',          jp:'吸収する',   desc:'物質を取り込み体内に取り入れること。', ex:'The small intestine absorbs nutrients.' },
+      { en:'degenerate',    ipa:'/dɪˈdʒɛnəreɪt/',     jp:'変性する',   desc:'組織や細胞が構造・機能を失って劣化すること。', ex:'Nerve cells can degenerate in Parkinson\'s disease.' },
+      { en:'concentrate',   ipa:'/ˈkɒnsəntreɪt/',     jp:'濃縮する',   desc:'溶液中の溶質の割合を高めること。', ex:'The kidneys concentrate urine to conserve water.' },
+      { en:'transfer',      ipa:'/trænsˈfɜːr/',        jp:'転移・伝達',  desc:'物質・エネルギー・情報をある場所から別の場所へ移すこと。', ex:'Energy transfer occurs during cellular respiration.' },
+      { en:'bind',          ipa:'/baɪnd/',              jp:'結合する',   desc:'分子同士が化学的に結びつくこと。受容体と配位子など。', ex:'Antibodies bind to specific antigens.' },
+    ]
+  },
+  {
+    id: 3,
+    name: '標準',
+    color: '#4cc9f0',
+    desc: '出題される重要語',
+    words: [
+      { en:'mitochondria',  ipa:'/ˌmaɪtəˈkɒndriə/',  jp:'ミトコンドリア',desc:'ATP産生の場。「細胞の発電所」と呼ばれる小器官。', ex:'Mitochondria generate most of the cell\'s ATP.' },
+      { en:'ribosome',      ipa:'/ˈraɪbəsoʊm/',       jp:'リボソーム',  desc:'タンパク質合成の場。mRNAを読みとりアミノ酸を連結。', ex:'Ribosomes translate mRNA into protein.' },
+      { en:'chloroplast',   ipa:'/ˈklɔːrəplæst/',     jp:'葉緑体',     desc:'光合成を行う植物細胞の小器官。チラコイド膜をもつ。', ex:'Chloroplasts contain chlorophyll for photosynthesis.' },
+      { en:'cytoplasm',     ipa:'/ˈsaɪtəplæzəm/',     jp:'細胞質',     desc:'核を除いた細胞内の半流動性の内容物全体。', ex:'Many metabolic reactions occur in the cytoplasm.' },
+      { en:'transcription', ipa:'/trænskˈrɪpʃən/',    jp:'転写',       desc:'DNAの塩基配列をRNA（mRNA）に写し取る過程。', ex:'Transcription occurs in the nucleus.' },
+      { en:'translation',   ipa:'/trænsˈleɪʃən/',     jp:'翻訳',       desc:'mRNAの塩基配列に従いアミノ酸を連結してタンパク質を合成。', ex:'Translation occurs at ribosomes in the cytoplasm.' },
+      { en:'replication',   ipa:'/ˌrɛplɪˈkeɪʃən/',   jp:'複製',       desc:'DNAが二倍になるプロセス。細胞分裂前に起こる。', ex:'DNA replication ensures identical copies for daughter cells.' },
+      { en:'osmotic',       ipa:'/ɒzˈmɒtɪk/',         jp:'浸透圧の',   desc:'浸透に関する形容詞。osmotic pressureは浸透圧。', ex:'Osmotic pressure drives water into cells.' },
+      { en:'endocrine',     ipa:'/ˈɛndəkrɪn/',        jp:'内分泌の',   desc:'ホルモンを血液中に直接分泌する腺・系に関する形容詞。', ex:'The endocrine system regulates growth and metabolism.' },
+      { en:'exocrine',      ipa:'/ˈɛksəkrɪn/',        jp:'外分泌の',   desc:'導管を通じて体表面や体腔に分泌する腺に関する形容詞。', ex:'Sweat glands are exocrine glands.' },
+      { en:'lymphocyte',    ipa:'/ˈlɪmfəsaɪt/',       jp:'リンパ球',   desc:'白血球の一種。T細胞・B細胞など免疫応答の中心。', ex:'Lymphocytes are key players in adaptive immunity.' },
+      { en:'phagocyte',     ipa:'/ˈfæɡəsaɪt/',        jp:'食細胞',     desc:'異物・細菌を取り込んで消化する細胞。好中球・マクロファージ。', ex:'Phagocytes engulf and destroy bacteria.' },
+      { en:'hemorrhage',    ipa:'/ˈhɛmərɪdʒ/',        jp:'出血',       desc:'血管破綻による血液の漏出。内出血・外出血の両方。', ex:'Brain hemorrhage can cause stroke.' },
+      { en:'hypertension',  ipa:'/ˌhaɪpərˈtɛnʃən/',  jp:'高血圧',     desc:'動脈血圧が持続的に高い状態。心疾患リスクを高める。', ex:'Hypertension is a major risk factor for heart disease.' },
+      { en:'anesthesia',    ipa:'/ˌænɪsˈθiːziə/',     jp:'麻酔',       desc:'手術などで感覚を消失させること。全身・局所麻酔がある。', ex:'General anesthesia renders the patient unconscious.' },
+      { en:'prognosis',     ipa:'/prɒɡˈnoʊsɪs/',      jp:'予後',       desc:'疾患の経過・回復についての医学的予測。', ex:'Early treatment improves the prognosis.' },
+      { en:'etiology',      ipa:'/ˌiːtiˈɒlədʒi/',     jp:'病因',       desc:'疾患の原因・発症機序を研究する学問分野。', ex:'The etiology of Alzheimer\'s disease is not fully understood.' },
+      { en:'benign',        ipa:'/bɪˈnaɪn/',           jp:'良性の',     desc:'悪性でない腫瘍。転移せず生命を脅かさない。', ex:'A benign tumor does not invade surrounding tissue.' },
+      { en:'malignant',     ipa:'/məˈlɪɡnənt/',       jp:'悪性の',     desc:'周囲に浸潤・転移して生命を脅かす腫瘍の性質。', ex:'Malignant cells can spread to distant organs.' },
+      { en:'biopsy',        ipa:'/ˈbaɪɒpsi/',          jp:'生検',       desc:'診断目的で生体組織の一部を採取して検査すること。', ex:'A biopsy confirmed the diagnosis of cancer.' },
+      { en:'platelet',      ipa:'/ˈpleɪtlɪt/',         jp:'血小板',     desc:'血液凝固・止血に関与する無核の血球。', ex:'Platelets help form clots to stop bleeding.' },
+      { en:'cortex',        ipa:'/ˈkɔːrtɛks/',         jp:'皮質',       desc:'臓器の外層部分。大脳皮質・副腎皮質などに使用。', ex:'The cerebral cortex processes sensory information.' },
+      { en:'medulla',       ipa:'/məˈdʌlə/',           jp:'髄質',       desc:'臓器の内層部分。脊髄・延髄・副腎髄質などに使用。', ex:'The adrenal medulla secretes adrenaline.' },
+      { en:'enzyme substrate',ipa:'/ˈsʌbstreɪt/',     jp:'基質',       desc:'酵素が作用する特定の反応物質。酵素-基質複合体を形成。', ex:'Each enzyme has a specific substrate.' },
+      { en:'hypothesis',    ipa:'/haɪˈpɒθɪsɪs/',      jp:'仮説',       desc:'観察から立てた検証可能な予測。科学的方法の出発点。', ex:'The hypothesis was supported by experimental data.' },
+      { en:'variable',      ipa:'/ˈvɛəriəbəl/',       jp:'変数',       desc:'実験で変化させる（独立変数）or測定する（従属変数）要素。', ex:'Temperature was the independent variable in the experiment.' },
+      { en:'control',       ipa:'/kənˈtroʊl/',         jp:'対照',       desc:'実験で変数を操作しない比較用のグループ・条件。', ex:'The control group received no treatment.' },
+      { en:'significant',   ipa:'/sɪɡˈnɪfɪkənt/',     jp:'有意な',     desc:'統計的に偶然とは言えない有意差があること。', ex:'The results were statistically significant (p < 0.05).' },
+      { en:'concentration', ipa:'/ˌkɒnsənˈtreɪʃən/',  jp:'濃度',       desc:'単位体積中の溶質の量。mol/Lなどで表される。', ex:'Enzyme activity depends on substrate concentration.' },
+      { en:'gradient',      ipa:'/ˈɡreɪdiənt/',        jp:'勾配',       desc:'濃度・電位・圧力などの空間的変化率。拡散の駆動力。', ex:'Ions move along the concentration gradient.' },
+    ]
+  },
+  {
+    id: 4,
+    name: 'やや難',
+    color: '#7c6fcd',
+    desc: '差がつく上位語彙',
+    words: [
+      { en:'apoptosis',     ipa:'/ˌæpəpˈtoʊsɪs/',    jp:'アポトーシス',desc:'遺伝的にプログラムされた細胞死。がん抑制に重要。', ex:'Apoptosis removes damaged or unnecessary cells.' },
+      { en:'autophagy',     ipa:'/ɔːˈtɒfədʒi/',       jp:'オートファジー',desc:'細胞が自身の不要成分を分解・リサイクルする機構。', ex:'Autophagy is upregulated during starvation.' },
+      { en:'epigenetics',   ipa:'/ˌɛpɪdʒɪˈnɛtɪks/',  jp:'エピジェネティクス',desc:'DNA配列を変えずに遺伝子発現を調節するメカニズム。', ex:'DNA methylation is a key epigenetic mechanism.' },
+      { en:'telomere',      ipa:'/ˈtɛləmɪər/',        jp:'テロメア',   desc:'染色体末端の反復配列。細胞分裂のたびに短縮する。', ex:'Shortened telomeres are associated with aging.' },
+      { en:'plasmid',       ipa:'/ˈplæzmɪd/',         jp:'プラスミド',  desc:'細菌の染色体外に存在する環状DNA。遺伝子操作に利用。', ex:'Plasmids are used as vectors in genetic engineering.' },
+      { en:'coenzyme',      ipa:'/koʊˈɛnzaɪm/',       jp:'補酵素',     desc:'酵素の触媒活性に必要な非タンパク質性の有機化合物。', ex:'NAD+ is a coenzyme involved in cellular respiration.' },
+      { en:'allosteric',    ipa:'/ˌæloʊˈstɛrɪk/',     jp:'アロステリックの',desc:'酵素の活性部位以外の部位に物質が結合し活性を変化させる。', ex:'Allosteric regulation controls enzyme activity.' },
+      { en:'glycolysis',    ipa:'/ɡlaɪˈkɒlɪsɪs/',     jp:'解糖',       desc:'グルコースをピルビン酸に分解する嫌気的過程。細胞質で起こる。', ex:'Glycolysis produces 2 ATP per glucose molecule.' },
+      { en:'krebs cycle',   ipa:'/ˈkrɛbz ˌsaɪkəl/',  jp:'クレブス回路',desc:'TCA回路ともいう。ミトコンドリアで行われる代謝経路。', ex:'The Krebs cycle produces NADH and FADH2.' },
+      { en:'oncogene',      ipa:'/ˈɒŋkədʒiːn/',       jp:'癌遺伝子',   desc:'細胞増殖を促進する遺伝子。変異でがん化を誘発。', ex:'Mutated proto-oncogenes become oncogenes.' },
+      { en:'metastasis',    ipa:'/məˈtæstəsɪs/',      jp:'転移',       desc:'悪性腫瘍が原発部位から離れた臓器に広がること。', ex:'Metastasis to the liver worsens the prognosis.' },
+      { en:'immunoglobulin',ipa:'/ˌɪmjʊnəˈɡlɒbjʊlɪn/',jp:'免疫グロブリン',desc:'抗体の別称。IgG・IgM・IgA・IgE・IgDの5クラス。', ex:'IgE immunoglobulins are involved in allergic reactions.' },
+      { en:'cytokine',      ipa:'/ˈsaɪtəkaɪn/',       jp:'サイトカイン', desc:'免疫細胞から分泌され細胞間の情報伝達を担う小型タンパク質。', ex:'Cytokines coordinate the immune response.' },
+      { en:'phagocytosis',  ipa:'/ˌfæɡəsaɪˈtoʊsɪs/', jp:'食作用',     desc:'細胞が固形粒子を取り込む過程。食細胞による感染防御。', ex:'Macrophages destroy bacteria by phagocytosis.' },
+      { en:'endocytosis',   ipa:'/ˌɛndəsaɪˈtoʊsɪs/', jp:'エンドサイトーシス',desc:'細胞膜をくぼませ細胞外物質を取り込む輸送機構。', ex:'LDL cholesterol enters cells by endocytosis.' },
+      { en:'exocytosis',    ipa:'/ˌɛksəsaɪˈtoʊsɪs/', jp:'エキソサイトーシス',desc:'細胞内の小胞が細胞膜と融合し内容物を細胞外に放出する。', ex:'Neurotransmitters are released by exocytosis.' },
+      { en:'electrochemical',ipa:'/ɪˌlɛktrəˈkɛmɪkəl/',jp:'電気化学的な',desc:'電気と化学を組み合わせた概念。電気化学的勾配など。', ex:'The electrochemical gradient drives ATP synthesis.' },
+      { en:'ligand',        ipa:'/ˈlɪɡənd/',           jp:'リガンド',   desc:'受容体などに特異的に結合する分子。', ex:'A ligand binds to its receptor to trigger a response.' },
+      { en:'cascade',       ipa:'/kæˈskeɪd/',          jp:'カスケード', desc:'一連の酵素反応や信号が連続的に増幅される過程。', ex:'The coagulation cascade leads to blood clotting.' },
+      { en:'proliferate',   ipa:'/prəˈlɪfəreɪt/',      jp:'増殖する',   desc:'細胞などが急速に数を増やすこと。', ex:'Cancer cells proliferate uncontrollably.' },
+      { en:'differentiate', ipa:'/ˌdɪfəˈrɛnʃieɪt/',   jp:'分化する',   desc:'幹細胞などが特定の機能をもつ細胞に変化すること。', ex:'Stem cells can differentiate into various cell types.' },
+      { en:'denature',      ipa:'/diːˈneɪtʃər/',       jp:'変性する',   desc:'タンパク質が熱やpH変化で立体構造を失い機能を失うこと。', ex:'High temperatures denature enzymes.' },
+      { en:'equilibrium',   ipa:'/ˌiːkwɪˈlɪbriəm/',   jp:'平衡',       desc:'正逆反応の速度が等しくなった化学的・生物学的状態。', ex:'The reaction reaches equilibrium when rates are equal.' },
+      { en:'substrate',     ipa:'/ˈsʌbstreɪt/',        jp:'基質',       desc:'酵素が結合して変換する特定の反応物質。', ex:'Lactase converts its substrate lactose into sugars.' },
+      { en:'solubility',    ipa:'/ˌsɒljʊˈbɪlɪti/',    jp:'溶解度',     desc:'一定量の溶媒に溶ける溶質の最大量。', ex:'Temperature affects the solubility of gases.' },
+      { en:'ion channel',   ipa:'/ˈaɪɒn ˈtʃænəl/',    jp:'イオンチャネル',desc:'イオンの膜透過を可能にするタンパク質の孔。', ex:'Ion channels generate nerve impulses.' },
+      { en:'action potential',ipa:'/ˈækʃən pəˈtɛnʃəl/',jp:'活動電位',   desc:'ニューロンの膜電位の急激な変化。神経信号の伝達様式。', ex:'Action potentials propagate along the axon.' },
+      { en:'feedback',      ipa:'/ˈfiːdbæk/',          jp:'フィードバック',desc:'産物が反応を調節する機構。負のフィードバックが多い。', ex:'Negative feedback maintains hormonal homeostasis.' },
+      { en:'amino acid',    ipa:'/əˌmiːnoʊ ˈæsɪd/',   jp:'アミノ酸',   desc:'タンパク質の構成単位。20種の標準アミノ酸がある。', ex:'Essential amino acids must be obtained from diet.' },
+      { en:'nucleotide',    ipa:'/ˈnjuːkliətaɪd/',    jp:'ヌクレオチド', desc:'核酸の単量体。塩基・糖・リン酸からなる。', ex:'DNA is composed of four types of nucleotides.' },
+    ]
+  },
+  {
+    id: 5,
+    name: '難',
+    color: '#f72585',
+    desc: '難関校対策・上級語彙',
+    words: [
+      { en:'pleiotropy',    ipa:'/ˈplaɪətrəpi/',      jp:'多面発現',   desc:'1つの遺伝子が複数の表現型形質に影響を与える現象。', ex:'Sickle cell disease shows pleiotropy.' },
+      { en:'epistasis',     ipa:'/ɪˈpɪstəsɪs/',       jp:'上位性',     desc:'一方の遺伝子が他の遺伝子の発現を抑制する相互作用。', ex:'Epistasis complicates the prediction of phenotypes.' },
+      { en:'stochastic',    ipa:'/stəˈkæstɪk/',       jp:'確率論的な', desc:'ランダムな確率的変動を伴う性質。遺伝子発現などに用いる。', ex:'Gene expression can be stochastic at the single-cell level.' },
+      { en:'haplotype',     ipa:'/ˈhæpləˌtaɪp/',      jp:'ハプロタイプ',desc:'一緒に遺伝する傾向のある複数の対立遺伝子の組み合わせ。', ex:'Haplotypes are used in population genetics studies.' },
+      { en:'proteomics',    ipa:'/ˌproʊtiˈɒmɪks/',    jp:'プロテオミクス',desc:'生物のタンパク質全体を網羅的に解析する学問。', ex:'Proteomics identifies disease biomarkers.' },
+      { en:'genomics',      ipa:'/dʒɪˈnoʊmɪks/',      jp:'ゲノミクス',  desc:'生物のゲノム全体を解析する学問。ゲノム医療の基盤。', ex:'Genomics has advanced cancer treatment.' },
+      { en:'microbiome',    ipa:'/ˈmaɪkrəʊbaɪoʊm/',  jp:'マイクロバイオーム',desc:'特定環境（腸内など）に生息する微生物群集の総体。', ex:'The gut microbiome influences immunity and metabolism.' },
+      { en:'senescence',    ipa:'/sɪˈnɛsəns/',        jp:'細胞老化',   desc:'細胞が永続的に増殖を停止する状態。加齢と関連。', ex:'Cellular senescence contributes to tissue aging.' },
+      { en:'ferroptosis',   ipa:'/fɛrɒpˈtoʊsɪs/',     jp:'フェロトーシス',desc:'鉄依存性の脂質過酸化による調節性細胞死の一形態。', ex:'Ferroptosis is implicated in neurodegenerative diseases.' },
+      { en:'pyroptosis',    ipa:'/paɪrɒpˈtoʊsɪs/',    jp:'パイロトーシス',desc:'炎症性カスパーゼが関与する炎症性プログラム細胞死。', ex:'Pyroptosis triggers inflammation during infection.' },
+      { en:'allometry',     ipa:'/æˈlɒmɪtri/',        jp:'異速成長',   desc:'体の異なる部分が異なる速度で成長する関係。', ex:'Brain size shows allometric scaling with body size.' },
+      { en:'polygenic',     ipa:'/ˌpɒlɪˈdʒɛnɪk/',     jp:'多遺伝子性の',desc:'複数の遺伝子が関与して決まる形質の性質。身長・IQなど。', ex:'Height is a polygenic trait.' },
+      { en:'phenotypic plasticity',ipa:'/ˌfiːnəˈtɪpɪk plæˈstɪsɪti/',jp:'表現型可塑性',desc:'同一遺伝子型が環境に応じて異なる表現型を示す能力。', ex:'Phenotypic plasticity allows rapid adaptation to environments.' },
+      { en:'reductionism',  ipa:'/rɪˈdʌkʃənɪzəm/',   jp:'還元主義',   desc:'複雑な系をその構成要素の性質から説明しようとする立場。', ex:'Molecular biology reflects a reductionist approach.' },
+      { en:'emergent property',ipa:'/ɪˈmɜːdʒənt ˈprɒpərti/',jp:'創発的特性',desc:'システムの個々の要素にはない、全体として現れる性質。', ex:'Consciousness is an emergent property of neural networks.' },
+      { en:'dysregulation', ipa:'/dɪsˌrɛɡjʊˈleɪʃən/',jp:'調節異常',   desc:'正常な調節機構が失われた状態。多くの疾患の基盤。', ex:'Immune dysregulation leads to autoimmune diseases.' },
+      { en:'pathophysiology',ipa:'/ˌpæθəˌfɪziˈɒlədʒi/',jp:'病態生理学', desc:'疾患によって生じる生理学的変化・機能異常を研究する学問。', ex:'Understanding pathophysiology guides treatment strategies.' },
+      { en:'sequela',       ipa:'/sɪˈkwiːlə/',        jp:'後遺症',     desc:'疾患・傷害の後に残る継続的な状態や合併症。複数形はsequelae。', ex:'Paralysis can be a sequela of stroke.' },
+      { en:'iatrogenic',    ipa:'/aɪˌætrəˈdʒɛnɪk/',  jp:'医原性の',   desc:'医療行為自体が原因で生じた疾患・症状の形容詞。', ex:'Antibiotic overuse causes iatrogenic resistance.' },
+      { en:'nosocomial',    ipa:'/ˌnɒzəˈkoʊmiəl/',   jp:'院内感染の', desc:'医療施設内で感染した疾患に関する形容詞。', ex:'Nosocomial infections are a major public health concern.' },
+      { en:'comorbidity',   ipa:'/ˌkoʊmɔːrˈbɪdɪti/', jp:'併存疾患',   desc:'主疾患とともに存在する別の疾患。管理を複雑にする。', ex:'Diabetes often presents with comorbidities like hypertension.' },
+      { en:'idiopathic',    ipa:'/ˌɪdiəˈpæθɪk/',     jp:'特発性の',   desc:'原因が不明または自然発生的な疾患・状態の形容詞。', ex:'Idiopathic Parkinson\'s disease has no known cause.' },
+      { en:'sequencing',    ipa:'/ˈsiːkwənsɪŋ/',      jp:'塩基配列決定',desc:'DNAやRNAの塩基配列を読み取る技術。次世代配列解析など。', ex:'Whole-genome sequencing reveals genetic variants.' },
+      { en:'immunosuppression',ipa:'/ˌɪmjʊnoʊsəˈprɛʃən/',jp:'免疫抑制', desc:'免疫系の活性を意図的に低下させること。移植後などに使用。', ex:'Immunosuppression prevents organ rejection.' },
+      { en:'sarcopenia',    ipa:'/ˌsɑːrkəˈpiːniə/',  jp:'サルコペニア',desc:'加齢に伴う骨格筋量・筋力の進行性低下。', ex:'Sarcopenia increases fall risk in elderly patients.' },
+      { en:'neuroplasticity',ipa:'/ˌnjʊərəʊplæˈstɪsɪti/',jp:'神経可塑性',desc:'経験・学習・損傷に応じて脳が構造・機能を変化させる能力。', ex:'Neuroplasticity allows the brain to recover after injury.' },
+      { en:'xenobiotic',    ipa:'/ˌziːnəbaɪˈɒtɪk/',  jp:'異生物質',   desc:'生体に外来の化学物質。薬物・毒素・汚染物質など。', ex:'The liver metabolizes xenobiotics for excretion.' },
+      { en:'chimera',       ipa:'/kaɪˈmɪərə/',        jp:'キメラ',     desc:'遺伝的に異なる細胞集団をもつ生物。移植後などに生じる。', ex:'Bone marrow transplant recipients may become chimeras.' },
+      { en:'heterodimer',   ipa:'/ˌhɛtərəˈdaɪmər/',  jp:'ヘテロ二量体',desc:'異なる2つのサブユニットからなるタンパク質複合体。', ex:'Many transcription factors function as heterodimers.' },
+      { en:'steric hindrance',ipa:'/ˈstɛrɪk ˈhɪndrəns/',jp:'立体障害',  desc:'分子の空間的大きさが化学反応や結合を妨げる現象。', ex:'Steric hindrance prevents certain enzyme-substrate interactions.' },
+    ]
+  }
+];
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let curLevel = 0;
+let curIdx   = 0;
+let mode     = 'flash';
+let revealed = false;
+let quizDone = false;
+let stats    = { total: 0, correct: 0 };
+let stickers = [];
+
+try { stickers = JSON.parse(localStorage.getItem('mv2_stickers') || '[]'); } catch(e){}
+
+function saveStickers(){ try{ localStorage.setItem('mv2_stickers', JSON.stringify(stickers)); }catch(e){} }
+
+function words(){ return LEVELS[curLevel].words; }
+function lv(){ return LEVELS[curLevel]; }
+
+// ════════════════════════════════════════
+//  BUILD LEVEL TABS
+// ════════════════════════════════════════
+function buildTabs(){
+  const c = document.getElementById('level-tabs');
+  c.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const done = stickers.filter(s => s._level === i).length;
+    const pct  = Math.max(0, Math.round((1 - done / lv.words.length) * 100));
+    const t = document.createElement('div');
+    t.className = 'ltab' + (i === curLevel ? ' active' : '');
+    t.style.borderColor = i === curLevel ? lv.color + '44' : '';
+    t.innerHTML = `
+      <div class="ltab-dot" style="background:${lv.color}"></div>
+      <div class="ltab-name" style="color:${i===curLevel?lv.color:''}">Lv.${lv.id} ${lv.name}</div>
+      <div class="ltab-num">${lv.words.length}語</div>
+      <div class="ltab-bar"><div class="ltab-bar-fill" style="width:${pct}%;background:${lv.color}"></div></div>
+    `;
+    t.onclick = () => { curLevel = i; curIdx = 0; revealed = false; quizDone = false; buildTabs(); render(); };
+    c.appendChild(t);
+  });
+}
+
+// ════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════
+function render(){
+  updateHeader();
+  updateProg();
+  if (mode === 'flash')   renderFlash();
+  else if(mode === 'quiz') renderQuiz();
+  else                     renderSticker();
+}
+
+function updateHeader(){
+  document.getElementById('h-correct').textContent = stats.correct;
+  document.getElementById('h-total').textContent   = stats.total;
+}
+
+function updateProg(){
+  const pct = ((curIdx + 1) / words().length * 100).toFixed(1);
+  const fill = document.getElementById('prog-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = lv().color;
+}
+
+// ─ Flash ─
+function renderFlash(){
+  const w = words()[curIdx];
+  revealed = false;
+  const card = document.getElementById('fcard');
+  card.classList.remove('revealed');
+  document.getElementById('f-badge').textContent = `LEVEL ${lv().id} · ${lv().name}`;
+  document.getElementById('f-badge').style.color = lv().color;
+  document.getElementById('f-num').textContent   = `${String(curIdx+1).padStart(2,'0')} / ${words().length}`;
+  document.getElementById('f-en').textContent    = w.en;
+  document.getElementById('f-ipa').textContent   = w.ipa;
+  document.getElementById('f-hint').style.display = '';
+  document.getElementById('f-jp').textContent    = w.jp;
+  document.getElementById('f-jp').style.color    = lv().color;
+  document.getElementById('f-desc').textContent  = w.desc;
+  document.getElementById('f-ex').textContent    = w.ex ? `e.g. "${w.ex}"` : '';
+  document.getElementById('f-reveal').classList.remove('show');
+  document.getElementById('ans-row').style.display = 'none';
+  document.getElementById('f-counter').textContent = `${curIdx+1} / ${words().length}`;
+}
+
+function reveal(){
+  if(revealed) return;
+  revealed = true;
+  document.getElementById('fcard').classList.add('revealed');
+  document.getElementById('f-hint').style.display = 'none';
+  document.getElementById('f-reveal').classList.add('show');
+  document.getElementById('ans-row').style.display = 'grid';
+  stats.total++;
+  updateHeader();
+}
+
+function mark(ok){
+  const w = words()[curIdx];
+  if(ok){
+    stats.correct++;
+    stickers = stickers.filter(s => !(s.en === w.en && s._level === curLevel));
+  } else {
+    if(!stickers.find(s => s.en === w.en && s._level === curLevel)){
+      stickers.push({...w, _level: curLevel, _lname: lv().name, _lcolor: lv().color});
+    }
+  }
+  saveStickers();
+  updateHeader();
+  buildTabs();
+  go(1);
+}
+
+function go(dir){
+  curIdx = (curIdx + dir + words().length) % words().length;
+  revealed = false; quizDone = false;
+  render();
+}
+
+// ─ Quiz ─
+function renderQuiz(){
+  const w = words()[curIdx];
+  quizDone = false;
+  document.getElementById('q-badge').textContent = `LEVEL ${lv().id} · ${lv().name}`;
+  document.getElementById('q-badge').style.color = lv().color;
+  document.getElementById('q-num').textContent   = `${String(curIdx+1).padStart(2,'0')} / ${words().length}`;
+  document.getElementById('q-en').textContent    = w.en;
+  document.getElementById('q-ipa').textContent   = w.ipa;
+  document.getElementById('q-counter').textContent = `${curIdx+1} / ${words().length}`;
+
+  const all = LEVELS.flatMap(l => l.words);
+  const wrong = all.filter(x => x.en !== w.en).sort(()=>Math.random()-.5).slice(0,3);
+  const opts  = [...wrong, w].sort(()=>Math.random()-.5);
+
+  const grid = document.getElementById('quiz-grid');
+  grid.innerHTML = '';
+  opts.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'qopt';
+    btn.textContent = o.jp;
+    btn.onclick = () => {
+      if(quizDone) return;
+      quizDone = true;
+      stats.total++;
+      const correct = o.en === w.en;
+      btn.classList.add(correct ? 'ok' : 'ng');
+      if(correct){
+        stats.correct++;
+        stickers = stickers.filter(s => !(s.en === w.en && s._level === curLevel));
+      } else {
+        grid.querySelectorAll('.qopt').forEach(b => { if(b.textContent === w.jp) b.classList.add('ok'); });
+        if(!stickers.find(s => s.en === w.en && s._level === curLevel)){
+          stickers.push({...w, _level: curLevel, _lname: lv().name, _lcolor: lv().color});
+        }
+      }
+      grid.querySelectorAll('.qopt').forEach(b => b.classList.add('dis'));
+      saveStickers();
+      updateHeader();
+      buildTabs();
+      setTimeout(() => go(1), 1100);
+    };
+    grid.appendChild(btn);
+  });
+  updateProg();
+}
+
+// ─ Sticker ─
+function renderSticker(){
+  const list = document.getElementById('sticker-list');
+  if(!stickers.length){
+    list.innerHTML = '<div class="empty-msg">苦手単語はまだありません 🎉<br><br>フラッシュカードで「✗ 苦手に追加」を押すと<br>ここに表示されます</div>';
+    return;
+  }
+  list.innerHTML = '';
+  stickers.forEach(w => {
+    const d = document.createElement('div');
+    d.className = 'sticker-item';
+    d.innerHTML = `
+      <div class="si-left">
+        <div class="si-en">${w.en}</div>
+        <div class="si-jp">${w.jp} · ${w.ipa}</div>
+      </div>
+      <div class="si-badge" style="color:${w._lcolor||'#f87171'};border-color:${w._lcolor||'#f87171'}44">Lv.${(w._level||0)+1} ${w._lname||''}</div>
+    `;
+    list.appendChild(d);
+  });
+}
+
+// ════════════════════════════════════════
+//  MODE SWITCH
+// ════════════════════════════════════════
+function setMode(m){
+  mode = m;
+  curIdx = 0; revealed = false; quizDone = false;
+  ['flash','quiz','sticker'].forEach(x => {
+    document.getElementById('mode-'+x).classList.toggle('hidden', x !== m);
+    document.getElementById('mb-'+x).classList.toggle('active', x === m);
+  });
+  render();
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+buildTabs();
+render();
+
+// ── Service Worker登録 ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+
+// ── インストールバナー ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'flex';
+});
+
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    const banner = document.getElementById('install-banner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+</script>
+
+<!-- インストールバナー -->
+
+<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#13131a;border-top:1px solid rgba(255,209,102,0.2);padding:14px 20px;z-index:1000;align-items:center;justify-content:space-between;gap:12px;">
+  <div style="font-size:0.82rem;color:#ede8ff;font-family:'Noto Sans JP',sans-serif;">
+    📲 ホーム画面に追加してオフラインで使えます
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;">
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:6px 12px;color:#7a7a9a;font-size:0.75rem;cursor:pointer;">後で</button>
+    <button onclick="installApp()" style="background:#ffd166;border:none;border-radius:6px;padding:6px 14px;color:#0c0c10;font-size:0.75rem;font-weight:700;cursor:pointer;">追加する</button>
+  </div>
+</div>
+</body>
+</html>
